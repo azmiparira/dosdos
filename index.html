@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Odos Checker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
+</head>
+<body class="bg-black min-h-screen flex items-center justify-center relative">
+    <div class="bg-gray-900 p-8 rounded-lg shadow-2xl w-full max-w-md border border-gray-800">
+        <h1 class="text-2xl font-bold mb-6 text-center text-white">Odos Checker</h1>
+        
+        <div class="mb-4">
+            <input 
+                type="text" 
+                id="walletAddressInput" 
+                placeholder="Enter Wallet Address" 
+                class="w-full p-2 border border-gray-700 rounded-md bg-black text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+        </div>
+        
+        <button 
+            id="searchButton" 
+            class="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 transition duration-300"
+        >
+            Check Allocation
+        </button>
+        
+        <div id="resultContainer" class="mt-6 text-center">
+            <!-- Search results will be displayed here -->
+        </div>
+    </div>
+
+    <!-- X (Twitter) Logo SVG in bottom right corner -->
+    <a href="https://x.com/crypticishan" target="_blank" class="absolute bottom-4 right-4 opacity-50 hover:opacity-100 transition-opacity duration-300">
+        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="white">
+            <path d="M18.901 1.153h3.68l-8.04 9.557L24 22.846h-7.406l-5.8-7.584-6.638 7.584H1.474l9.165-10.44L0 1.153h7.594l5.243 6.932L18.901 1.153zm-1.306 17.055h2.034L6.474 3.217H4.298L17.595 18.208z"/>
+        </svg>
+    </a>
+
+    <script>
+        // Function to validate Ethereum wallet address
+        function isValidEthereumAddress(address) {
+            return /^0x[a-fA-F0-9]{40}$/.test(address);
+        }
+
+        // Function to convert Uint256 to human-readable format
+        function formatUint256(value, decimals = 18) {
+            try {
+                // Convert the Uint256 to a BigInt
+                const bigIntValue = BigInt(value);
+                
+                // Divide by 10^decimals to get the actual token amount
+                const divisor = BigInt(10 ** decimals);
+                const formattedValue = Number(bigIntValue / divisor);
+                const remainder = Number(bigIntValue % divisor);
+                
+                // Format with comma separators and fixed decimal places
+                const integerPart = formattedValue.toLocaleString();
+                const decimalPart = remainder.toString().padStart(decimals, '0').slice(0, 4);
+                
+                return `${integerPart}.${decimalPart}`;
+            } catch (error) {
+                console.error('Error formatting Uint256:', error);
+                return value; // Fallback to original value if conversion fails
+            }
+        }
+
+        // Function to fetch wallet allocation
+        async function fetchWalletAllocation(walletAddress) {
+            const resultContainer = document.getElementById('resultContainer');
+            resultContainer.innerHTML = '<p class="text-gray-400">Searching...</p>';
+
+            try {
+                // Replace this with the actual API endpoint you're using
+                const apiUrl = `https://api.odos.xyz/loyalty/users/${walletAddress}/balances`;
+                
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
+                const data = await response.json();
+                
+                // Display only pending balance
+                resultContainer.innerHTML = `
+                    <div class="bg-gray-800 p-4 rounded-md text-white">
+                        <p class="text-yellow-400 text-xl">${formatUint256(data.data.pendingTokenBalance)} $Odos</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultContainer.innerHTML = `
+                    <div class="bg-red-900 p-4 rounded-md text-red-300">
+                        <p>Error fetching allocation:</p>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Event listener for search button
+        document.getElementById('searchButton').addEventListener('click', () => {
+            const walletAddressInput = document.getElementById('walletAddressInput');
+            const walletAddress = walletAddressInput.value.trim();
+
+            if (!isValidEthereumAddress(walletAddress)) {
+                document.getElementById('resultContainer').innerHTML = `
+                    <div class="bg-red-900 p-4 rounded-md text-red-300">
+                        <p>Invalid Ethereum wallet address</p>
+                        <p>Please enter a valid 0x address</p>
+                    </div>
+                `;
+                return;
+            }
+
+            fetchWalletAllocation(walletAddress);
+        });
+
+        // Optional: Allow search on Enter key press
+        document.getElementById('walletAddressInput').addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                document.getElementById('searchButton').click();
+            }
+        });
+    </script>
+</body>
+</html>
